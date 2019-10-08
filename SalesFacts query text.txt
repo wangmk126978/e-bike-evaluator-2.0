@@ -1,0 +1,38 @@
+SELECT
+  *
+FROM (
+  SELECT
+    p.V2productName AS Product,
+    p.productSKU AS MagentoSKU,
+    hits.page.pagePath AS Page,
+    SUM(totals.visits) AS visits
+  FROM
+    `ibg-data.190250099.ga_sessions_*`,
+    UNNEST(hits) AS hits,
+    UNNEST(hits.product) AS p
+  WHERE
+    _table_suffix BETWEEN '20190325'
+    AND '20190812'
+    AND hits.eCommerceAction.action_type = '2'
+  GROUP BY
+    p.V2productName,
+    p.productSKU,
+    Page )
+LEFT JOIN (
+  SELECT
+    SUM(Quantity) AS Quantity,
+    SUM(OrderValue_Euro) AS Order_Value,
+    REPLACE(ParentSKU, '_', '-') AS MagentoSKU
+
+  FROM
+    `ibg-data.data_mart.SalesFacts`
+  WHERE
+    ORderTimestamp BETWEEN '2019-03-25'
+    AND '2019-08-12'
+    AND ProductCategory1 = 'Bikes'
+  GROUP BY
+    MagentoSKU )
+USING
+  (MagentoSKU)
+WHERE
+  Quantity IS NOT NULL
